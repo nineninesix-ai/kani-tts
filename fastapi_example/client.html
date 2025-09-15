@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kani TTS Client</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 120px;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+        
+        textarea:focus {
+            border-color: #4CAF50;
+            outline: none;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            min-width: 120px;
+        }
+        
+        .control-group label {
+            font-size: 14px;
+            margin-bottom: 3px;
+        }
+        
+        input[type="number"], input[type="range"] {
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 3px;
+            font-size: 14px;
+        }
+        
+        input[type="range"] {
+            width: 100px;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .btn-primary {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #45a049;
+        }
+        
+        .btn-secondary {
+            background-color: #2196F3;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #1976D2;
+        }
+        
+        .btn-danger {
+            background-color: #f44336;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background-color: #d32f2f;
+        }
+        
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .audio-container {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        
+        .audio-container h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        audio {
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        .status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        
+        .status.loading {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f1b0b7;
+        }
+        
+        .examples {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #e3f2fd;
+            border-radius: 5px;
+        }
+        
+        .examples h3 {
+            margin-top: 0;
+            color: #1565c0;
+        }
+        
+        .example-btn {
+            display: inline-block;
+            margin: 5px;
+            padding: 8px 12px;
+            background-color: #1976d2;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .example-btn:hover {
+            background-color: #1565c0;
+        }
+        
+        .api-info {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 Kani Text-to-Speech</h1>
+        
+        <div class="form-group">
+            <label for="textInput">Enter text to convert to speech:</label>
+            <textarea 
+                id="textInput" 
+                placeholder="Type your text here... For example: 'Hello world! My name is Kani, I'm a speech generation model!'"
+            >The morning fog rolled across the valley like a gentle gray blanket, slowly revealing the ancient oak trees that had stood sentinel for centuries.</textarea>
+        </div>
+        
+        <div class="form-group">
+            <label>Generation Parameters:</label>
+            <div class="controls">
+                <div class="control-group">
+                    <label for="temperature">Temperature:</label>
+                    <input type="range" id="temperature" min="0.1" max="1.5" step="0.1" value="0.6">
+                    <span id="tempValue">0.6</span>
+                </div>
+                <div class="control-group">
+                    <label for="maxTokens">Max Tokens:</label>
+                    <input type="number" id="maxTokens" min="100" max="2000" value="1200">
+                </div>
+            </div>
+        </div>
+        
+        <div class="buttons">
+            <button id="generateBtn" class="btn-primary">🎵 Generate Speech</button>
+            <button id="streamBtn" class="btn-secondary">📡 Stream Speech</button>
+            <button id="stopBtn" class="btn-danger" disabled>⏹️ Stop</button>
+        </div>
+        
+        <div id="status"></div>
+        
+        <div id="audioContainer" class="audio-container" style="display: none;">
+            <h3>Generated Audio:</h3>
+            <audio id="audioPlayer" controls>
+                Your browser does not support the audio element.
+            </audio>
+            <div>
+                <button id="downloadBtn" class="btn-secondary" style="margin-top: 10px;">💾 Download Audio</button>
+            </div>
+        </div>
+        
+        <div class="examples">
+            <h3>Quick Examples:</h3>
+            <button class="example-btn" onclick="setExample('Hello world! My name is Kani, I am a speech generation model!')">Greeting</button>
+            <button class="example-btn" onclick="setExample('The quick brown fox jumps over the lazy dog.')">Pangram</button>
+            <button class="example-btn" onclick="setExample('Welcome to our artificial intelligence powered text to speech system.')">Welcome</button>
+            <button class="example-btn" onclick="setExample('In a hole in the ground there lived a hobbit.')">Story</button>
+        </div>
+        
+        <div class="api-info">
+            <strong>API Endpoints:</strong><br>
+            • POST /tts - Generate complete audio file<br>
+            • POST /stream-tts - Stream audio generation<br>
+            • GET /health - Check server status<br>
+            <br>
+            <strong>Server:</strong> <span id="serverUrl">http://localhost:8000</span>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        let currentAudioUrl = null;
+        let isGenerating = false;
+        
+        // Elements
+        const textInput = document.getElementById('textInput');
+        const temperatureSlider = document.getElementById('temperature');
+        const tempValue = document.getElementById('tempValue');
+        const maxTokensInput = document.getElementById('maxTokens');
+        const generateBtn = document.getElementById('generateBtn');
+        const streamBtn = document.getElementById('streamBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const statusDiv = document.getElementById('status');
+        const audioContainer = document.getElementById('audioContainer');
+        const audioPlayer = document.getElementById('audioPlayer');
+        const downloadBtn = document.getElementById('downloadBtn');
+        
+        // Update temperature display
+        temperatureSlider.addEventListener('input', (e) => {
+            tempValue.textContent = e.target.value;
+        });
+        
+        // Set example text
+        function setExample(text) {
+            textInput.value = text;
+        }
+        
+        // Show status message
+        function showStatus(message, type = 'info') {
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+        
+        // Clear status
+        function clearStatus() {
+            statusDiv.innerHTML = '';
+        }
+        
+        // Set loading state
+        function setLoading(loading) {
+            isGenerating = loading;
+            generateBtn.disabled = loading;
+            streamBtn.disabled = loading;
+            stopBtn.disabled = !loading;
+            
+            if (loading) {
+                showStatus('🎵 Generating speech... This may take a few seconds.', 'loading');
+            }
+        }
+        
+        // Generate speech (regular endpoint)
+        async function generateSpeech() {
+            const text = textInput.value.trim();
+            if (!text) {
+                showStatus('Please enter some text to convert to speech.', 'error');
+                return;
+            }
+            
+            setLoading(true);
+            
+            try {
+                const response = await fetch(`${API_BASE}/tts`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text: text,
+                        temperature: parseFloat(temperatureSlider.value),
+                        max_tokens: parseInt(maxTokensInput.value)
+                    })
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Speech generation failed');
+                }
+                
+                const audioBlob = await response.blob();
+                displayAudio(audioBlob);
+                showStatus('✅ Speech generated successfully!', 'success');
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showStatus(`❌ Error: ${error.message}`, 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        // Stream speech with immediate playback
+        async function streamSpeech() {
+            const text = textInput.value.trim();
+            if (!text) {
+                showStatus('Please enter some text to convert to speech.', 'error');
+                return;
+            }
+            
+            setLoading(true);
+            showStatus('🎵 Starting audio generation... Audio will begin playing shortly.', 'loading');
+            
+            try {
+                const response = await fetch(`${API_BASE}/stream-tts`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text: text,
+                        temperature: parseFloat(temperatureSlider.value),
+                        max_tokens: parseInt(maxTokensInput.value)
+                    })
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Speech streaming failed');
+                }
+                
+                // Handle streaming response
+                await handleStreamingAudio(response);
+                showStatus('✅ Speech streamed and played successfully!', 'success');
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showStatus(`❌ Error: ${error.message}`, 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        // Handle streaming audio with immediate playback
+        async function handleStreamingAudio(response) {
+            const reader = response.body.getReader();
+            const chunks = [];
+            let receivedFirstChunk = false;
+            
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    
+                    if (done) break;
+                    
+                    chunks.push(value);
+                    
+                    // Start playing after receiving first chunk
+                    if (!receivedFirstChunk) {
+                        receivedFirstChunk = true;
+                        showStatus('🔊 Audio stream started! Playing as data arrives...', 'loading');
+                        
+                        // Create initial blob from first chunk and start playing
+                        const initialBlob = new Blob(chunks, { type: 'audio/wav' });
+                        displayStreamingAudio(initialBlob, true);
+                    }
+                }
+                
+                // Create final complete audio blob
+                const completeBlob = new Blob(chunks, { type: 'audio/wav' });
+                displayStreamingAudio(completeBlob, false);
+                
+            } finally {
+                reader.releaseLock();
+            }
+        }
+        
+        // Display streaming audio with option for immediate playback
+        function displayStreamingAudio(audioBlob, isStreaming = false) {
+            // Clean up previous audio URL only if this is the final version
+            if (!isStreaming && currentAudioUrl) {
+                URL.revokeObjectURL(currentAudioUrl);
+            }
+            
+            const audioUrl = URL.createObjectURL(audioBlob);
+            
+            if (isStreaming) {
+                // For streaming: create a temporary audio element for immediate playback
+                const tempAudio = new Audio(audioUrl);
+                tempAudio.play().catch(e => {
+                    console.log('Auto-play blocked, user interaction required');
+                    showStatus('🔊 Audio ready! Click play button to start.', 'success');
+                });
+                
+                // Clean up temporary URL after playing
+                tempAudio.addEventListener('ended', () => {
+                    URL.revokeObjectURL(audioUrl);
+                });
+            } else {
+                // For final audio: update the main player
+                currentAudioUrl = audioUrl;
+                audioPlayer.src = currentAudioUrl;
+                audioContainer.style.display = 'block';
+                
+                // Auto-play the complete audio
+                audioPlayer.play().catch(e => {
+                    console.log('Auto-play blocked for final audio');
+                });
+                
+                // Set up download for complete audio
+                downloadBtn.onclick = () => {
+                    const a = document.createElement('a');
+                    a.href = currentAudioUrl;
+                    a.download = `tts_audio_${new Date().getTime()}.wav`;
+                    a.click();
+                };
+            }
+        }
+        
+        // Display audio
+        function displayAudio(audioBlob) {
+            // Clean up previous audio URL
+            if (currentAudioUrl) {
+                URL.revokeObjectURL(currentAudioUrl);
+            }
+            
+            currentAudioUrl = URL.createObjectURL(audioBlob);
+            audioPlayer.src = currentAudioUrl;
+            audioContainer.style.display = 'block';
+            
+            // Set up download
+            downloadBtn.onclick = () => {
+                const a = document.createElement('a');
+                a.href = currentAudioUrl;
+                a.download = `tts_audio_${new Date().getTime()}.wav`;
+                a.click();
+            };
+        }
+        
+        // Stop generation (placeholder - would need server-side implementation)
+        function stopGeneration() {
+            showStatus('Stop functionality would require server-side implementation.', 'info');
+            setLoading(false);
+        }
+        
+        // Event listeners
+        generateBtn.addEventListener('click', generateSpeech);
+        streamBtn.addEventListener('click', streamSpeech);
+        stopBtn.addEventListener('click', stopGeneration);
+        
+        // Enter key support
+        textInput.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'Enter') {
+                generateSpeech();
+            }
+        });
+        
+        // Health check on load
+        window.addEventListener('load', async () => {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                if (response.ok) {
+                    const health = await response.json();
+                    if (health.tts_initialized) {
+                        showStatus('🟢 Server is ready!', 'success');
+                        setTimeout(clearStatus, 3000);
+                    } else {
+                        showStatus('🟡 Server is starting up...', 'loading');
+                    }
+                } else {
+                    showStatus('🔴 Cannot connect to server. Make sure it\'s running on http://localhost:8000', 'error');
+                }
+            } catch (error) {
+                showStatus('🔴 Cannot connect to server. Make sure it\'s running on http://localhost:8000', 'error');
+            }
+        });
+        
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (currentAudioUrl) {
+                URL.revokeObjectURL(currentAudioUrl);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,19 +1,14 @@
-# NanoCodec TTS System
+# Kani TTS
 
-A modular Text-to-Speech system that combines NVIDIA NeMo audio codecs with Hugging Face transformers to generate high-quality speech from text input.
+A modular 450M Human-Like TTS Model that generates high-quality speech from text input.
 
 ## Features
 
-- **High-Quality Audio**: Uses NVIDIA NeMo nano codec (22kHz, 0.6kbps compression)
-- **Modular Architecture**: Clean separation of concerns with pluggable components
-- **Automatic File Saving**: Generates timestamped WAV files
-- **Configurable Parameters**: Easy configuration for models, audio settings, and generation parameters
+- **High-Quality Speech**: 22kHz, 0.6kbps compression.
 
 ## Installation
 
 ### Prerequisites
-
-This project requires a custom build of transformers due to the specialized "lfm2" model type.
 
 ```bash
 # Core dependencies
@@ -22,6 +17,9 @@ pip install "nemo_toolkit[tts]"
 
 # CRITICAL: Custom transformers build required for "lfm2" model type
 pip install -U "git+https://github.com/huggingface/transformers.git"
+
+# Optional: For web interface
+pip install fastapi uvicorn
 
 # Authentication for model access
 hf auth login
@@ -38,9 +36,28 @@ python basic/main.py --prompt "Hello world! My name is Kani, I'm a speech genera
 ```
 
 This will:
-1. Load the TTS model and audio codec
+1. Load the TTS model
 2. Generate speech from the provided text (or built-in sample text if no prompt given)
 3. Save audio as `generated_audio_YYYYMMDD_HHMMSS.wav`
+
+## Web Interface
+
+For a browser-based interface with real-time audio playback:
+
+```bash
+# Start the FastAPI server
+python fastapi_example/server.py
+
+# Open fastapi_example/client.html in your web browser
+# Server runs on http://localhost:8000
+```
+
+The web interface provides:
+- Interactive text input with example prompts
+- Parameter adjustment (temperature, max tokens)
+- Real-time audio generation and playback
+- Download functionality for generated audio
+- Server health monitoring
 
 ## Architecture
 
@@ -62,23 +79,9 @@ Default configuration uses:
 
 Modify `config.py` to customize these settings.
 
-## Project Structure
-
-```
-├── main.py          # Entry point and execution
-├── config.py        # Configuration classes
-├── tokens.py        # Token registry and management
-├── audio.py         # Audio processing and NeMo integration
-├── models.py        # Model inference and text processing
-├── extractors.py    # Audio/text extraction from token sequences
-├── factory.py       # Factory pattern for component creation
-└── __init__.py      # Package initialization
-```
-
 ## Tested on
 
 - NVIDIA GeForce RTX 5080
-- NVIDIA-SMI 570.169
 - Driver Version: 570.169
 - CUDA Version: 12.8
 - 16GB GPU memory
@@ -86,7 +89,7 @@ Modify `config.py` to customize these settings.
 - Transformers: 4.57.0.dev0
 
 ## Inference speed
-In order to generate 10sec audio it takes 4sec and ~2Gb GPU VRAM
+In order to generate 10sec audio it takes 2sec and ~2Gb GPU VRAM
 
 
 
