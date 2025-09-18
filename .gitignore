@@ -139,12 +139,11 @@ mlruns/
 .neptune/
 
 # Audio files (generated outputs)
-*.wav
+basic/*.wav
 *.mp3
 *.flac
 *.ogg
 *.m4a
-generated_audio_*.wav
 
 # Hugging Face cache
 .cache/
