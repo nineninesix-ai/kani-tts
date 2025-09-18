@@ -16,7 +16,7 @@ class AudioConfig:
 @dataclass
 class ModelConfig:
     """Configuration for language model."""
-    model_name: str = 'kyrgyz-ai-research/lfm-nano-codec-tts-exp-4-large-61468-st'
+    model_name: str = 'nineninesix/kani-tts-450m-0.1-pt'
     device_map: str = "auto"
     torch_dtype: str = "bfloat16"
     max_new_tokens: int = 1200

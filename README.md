@@ -1,9 +1,14 @@
+
+<img src="public/logo.png" alt="drawing" width="200"/>
+
+<br/>
+
 # Kani TTS
 
-A modular 450M Human-Like TTS Model that generates high-quality speech from text input.
+A modular Human-Like TTS Model that generates high-quality speech from text input.
 
 ## Features
-
+- **450M Parameters**: optimized for edge devices and affordable servers.
 - **High-Quality Speech**: 22kHz, 0.6kbps compression.
 
 ## Installation
@@ -20,9 +25,6 @@ pip install -U "git+https://github.com/huggingface/transformers.git"
 
 # Optional: For web interface
 pip install fastapi uvicorn
-
-# Authentication for model access
-hf auth login
 ```
 
 ## Quick Start
@@ -72,7 +74,7 @@ The system uses a layered architecture with clear separation of concerns:
 ## Configuration
 
 Default configuration uses:
-- **Text Model**: `url of your hf model`
+- **Text Model**: `https://huggingface.co/nineninesix/kani-tts-450m-0.1-pt`
 - **Audio Codec**: `nvidia/nemo-nano-codec-22khz-0.6kbps-12.5fps`
 - **Sample Rate**: 22,050 Hz
 - **Generation**: 1200 max tokens, temperature 0.6
@@ -89,7 +91,7 @@ Modify `config.py` to customize these settings.
 - Transformers: 4.57.0.dev0
 
 ## Inference speed
-In order to generate 10sec audio it takes 2sec and ~2Gb GPU VRAM
+In order to generate 15sec audio it takes ~1sec and ~2Gb GPU VRAM
 
 
 
