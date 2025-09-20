@@ -84,10 +84,11 @@ To use a different model, modify the class `ModelConfig` in `config.py`.
 
 | Text | Audio |
 |---|---|
-| I do believe Marsellus Wallace, MY husband, YOUR boss, told you to take me out and do WHATEVER I WANTED. | <audio controls><source src="public/mia.wav" type="audio/mpeg"></audio> |
-| What do we say the the god of death? Not today! | <audio controls><source src="public/arya.wav" type="audio/wav"></audio> |
-| What do you call a lawyer with an IQ of 60? Your honor | <audio controls><source src="public/saul.wav" type="audio/wav"></audio> |
-| You mean, let me understand this cause, you know maybe it's me, it's a little fucked up maybe, but I'm funny how, I mean funny like I'm a clown, I amuse you? I make you laugh, I'm here to fucking amuse you? | <audio controls><source src="public/tommy.wav" type="audio/wav"></audio> |
+| I do believe Marsellus Wallace, MY husband, YOUR boss, told you to take me out and do WHATEVER I WANTED. | [Play](https://github.com/nineninesix-ai/kani-tts/raw/82dbdaa2f76a6ad135f7b08f974e72046c51d3ba/public/mia.wav) |
+| What do we say the the god of death? Not today! | [Play](https://github.com/nineninesix-ai/kani-tts/raw/82dbdaa2f76a6ad135f7b08f974e72046c51d3ba/public/arya.wav) |
+| What do you call a lawyer with an IQ of 60? Your honor | [Play](https://github.com/nineninesix-ai/kani-tts/raw/82dbdaa2f76a6ad135f7b08f974e72046c51d3ba/public/saul.wav) |
+| You mean, let me understand this cause, you know maybe it's me, it's a little fucked up maybe, but I'm funny how, I mean funny like I'm a clown, I amuse you? I make you laugh, I'm here to fucking amuse you? | [Play](https://github.com/nineninesix-ai/kani-tts/raw/82dbdaa2f76a6ad135f7b08f974e72046c51d3ba/public/tommy.wav) |
+
 
 ## Architecture
 
