@@ -20,7 +20,7 @@ class ModelConfig:
     device_map: str = "auto"
     torch_dtype: str = "bfloat16"
     max_new_tokens: int = 1200
-    temperature: float = 0.6
+    temperature: float = 1.4
     top_p: float = 0.95
     repetition_penalty: float = 1.1
 

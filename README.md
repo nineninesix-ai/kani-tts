@@ -61,14 +61,33 @@ The web interface provides:
 - Download functionality for generated audio
 - Server health monitoring
 
+## Configuration
+
+Default configuration uses:
+- **Model**: `https://huggingface.co/nineninesix/kani-tts-450m-0.1-pt`
+- **Sample Rate**: 22,050 Hz
+- **Generation**: 1200 max tokens, temperature 1.4
+
+### Model Variants
+
+Choose different models for specific voice characteristics:
+
+- **Base model (default)**: `nineninesix/kani-tts-450m-0.1-pt`
+- **Female voice**: `nineninesix/kani-tts-450m-0.2-ft`
+- **Male voice**: `nineninesix/kani-tts-450m-0.1-ft`
+
+> Base model generates random voices
+
+To use a different model, modify the class `ModelConfig` in `config.py`.
+
 ## Examples
 
 | Text | Audio |
 |---|---|
-| I do believe Marsellus Wallace, MY husband, YOUR boss, told you to take me out and do WHATEVER I WANTED. | [Play](public/mia.wav) |
-| What do we say the the god of death? Not today! | [Play](public/arya.wav) |
-| What do you call a lawyer with an IQ of 60? Your honor | [Play](public/saul.wav) |
-| You mean, let me understand this cause, you know maybe it's me, it's a little fucked up maybe, but I'm funny how, I mean funny like I'm a clown, I amuse you? I make you laugh, I'm here to fucking amuse you? | [Play](public/tommy.wav) |
+| I do believe Marsellus Wallace, MY husband, YOUR boss, told you to take me out and do WHATEVER I WANTED. | <audio controls><source src="public/mia.wav" type="audio/mpeg"></audio> |
+| What do we say the the god of death? Not today! | <audio controls><source src="public/arya.wav" type="audio/wav"></audio> |
+| What do you call a lawyer with an IQ of 60? Your honor | <audio controls><source src="public/saul.wav" type="audio/wav"></audio> |
+| You mean, let me understand this cause, you know maybe it's me, it's a little fucked up maybe, but I'm funny how, I mean funny like I'm a clown, I amuse you? I make you laugh, I'm here to fucking amuse you? | <audio controls><source src="public/tommy.wav" type="audio/wav"></audio> |
 
 ## Architecture
 
@@ -79,16 +98,6 @@ The system uses a layered architecture with clear separation of concerns:
 - **Audio Processing**: Strategy pattern for different codec implementations
 - **Model Inference**: Text-to-token generation with the LLM
 - **Audio Extraction**: Validates and processes audio codes from token sequences
-
-## Configuration
-
-Default configuration uses:
-- **Text Model**: `https://huggingface.co/nineninesix/kani-tts-450m-0.1-pt`
-- **Audio Codec**: `nvidia/nemo-nano-codec-22khz-0.6kbps-12.5fps`
-- **Sample Rate**: 22,050 Hz
-- **Generation**: 1200 max tokens, temperature 0.6
-
-Modify `config.py` to customize these settings.
 
 ## Tested on
 
