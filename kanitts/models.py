@@ -2,7 +2,7 @@
 
 import torch
 import logging
-from typing import Tuple
+from typing import Tuple, Optional
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from .config import Config, ModelConfig
 from .tokens import TokenRegistry
@@ -34,11 +34,19 @@ class InputProcessor:
 class ModelInference:
     """Handles model inference operations."""
     
-    def __init__(self, model, config: ModelConfig, token_registry: TokenRegistry):
+    def __init__(self, model, config: ModelConfig, token_registry: TokenRegistry, device: Optional[str] = None):
         self.model = model
         self.config = config
         self.tokens = token_registry
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        if device is not None:
+            self.device = device
+        else:
+            if torch.cuda.is_available():
+                self.device = 'cuda'
+            elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+                self.device = 'mps'
+            else:
+                self.device = 'cpu'
     
     def generate(self, input_ids: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
         """Generate tokens from input."""
@@ -68,16 +76,38 @@ class KaniModel:
         self.player = player
         
         logger.info(f"Loading model: {config.model.model_name}")
-        torch_dtype = getattr(torch, config.model.torch_dtype)
+        if torch.cuda.is_available():
+            device = 'cuda'
+        elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+            device = 'mps'
+        else:
+            device = 'cpu'
+
+        torch_dtype_name = config.model.torch_dtype
+        torch_dtype = getattr(torch, torch_dtype_name)
+        device_map = config.model.device_map
+
+        if device == 'mps' and torch_dtype_name not in {"float16", "float32"}:
+            logger.warning(
+                "MPS backend does not support %s precision; falling back to float32.",
+                torch_dtype_name,
+            )
+            torch_dtype = torch.float32
+            device_map = None
+
         self.model = AutoModelForCausalLM.from_pretrained(
             config.model.model_name,
             torch_dtype=torch_dtype,
-            device_map=config.model.device_map,
+            device_map=device_map,
         )
-        
+
+        if device != 'cpu' and device_map is None:
+            self.model.to(device)
+        self.device = device
+
         self.tokenizer = AutoTokenizer.from_pretrained(config.model.model_name)
         self.input_processor = InputProcessor(self.tokenizer, config.tokens)
-        self.inference = ModelInference(self.model, config.model, config.tokens)
+        self.inference = ModelInference(self.model, config.model, config.tokens, device=self.device)
     
     def run_model(self, text: str) -> Tuple[torch.Tensor, str]:
         """Generate audio from input text."""
