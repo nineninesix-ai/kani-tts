@@ -2,6 +2,7 @@
 """FastAPI server for TTS audio streaming."""
 
 import io
+import asyncio
 import logging
 import tempfile
 from typing import Optional
@@ -46,6 +47,10 @@ async def startup_event():
         config = Config.default()
         tts_system, _ = TTSFactory.create_system(config)
         logger.info("TTS system initialized successfully")
+
+        logger.info("Warming up TTS model...")
+        await asyncio.to_thread(tts_system.run_model, "Warm-up phrase for TTS initialization.")
+        logger.info("TTS model warm-up completed")
     except Exception as e:
         logger.error(f"Failed to initialize TTS system: {e}")
         raise
