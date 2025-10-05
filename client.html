@@ -208,11 +208,17 @@
             font-size: 14px;
             color: #666;
         }
+        img {
+            margin-left: auto;
+            margin-right: auto;
+            display: block;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🎤 Kani Text-to-Speech</h1>
+        <img alt="Logo" width="100px" height="100px" src="logo.png" />
+        <h1>Kani TTS</h1>
         
         <div class="form-group">
             <label for="textInput">Enter text to convert to speech:</label>
@@ -258,9 +264,9 @@
         <div class="examples">
             <h3>Quick Examples:</h3>
             <button class="example-btn" onclick="setExample('Hello world! My name is Kani, I am a speech generation model!')">Greeting</button>
-            <button class="example-btn" onclick="setExample('The quick brown fox jumps over the lazy dog.')">Pangram</button>
-            <button class="example-btn" onclick="setExample('Welcome to our artificial intelligence powered text to speech system.')">Welcome</button>
-            <button class="example-btn" onclick="setExample('In a hole in the ground there lived a hobbit.')">Story</button>
+            <button class="example-btn" onclick="setExample('puck: The quick brown fox jumps over the lazy dog.')">Pangram</button>
+            <button class="example-btn" onclick="setExample('katie: Welcome to our artificial intelligence powered text to speech system.')">Welcome</button>
+            <button class="example-btn" onclick="setExample('ming: In a hole in the ground there lived a hobbit.')">Story</button>
         </div>
         
         <div class="api-info">
@@ -370,10 +376,10 @@
                 showStatus('Please enter some text to convert to speech.', 'error');
                 return;
             }
-            
+
             setLoading(true);
             showStatus('🎵 Starting audio generation... Audio will begin playing shortly.', 'loading');
-            
+
             try {
                 const response = await fetch(`${API_BASE}/stream-tts`, {
                     method: 'POST',
@@ -386,16 +392,16 @@
                         max_tokens: parseInt(maxTokensInput.value)
                     })
                 });
-                
+
                 if (!response.ok) {
                     const error = await response.json();
                     throw new Error(error.detail || 'Speech streaming failed');
                 }
-                
-                // Handle streaming response
-                await handleStreamingAudio(response);
+
+                // Handle streaming PCM audio
+                await handleStreamingPCM(response);
                 showStatus('✅ Speech streamed and played successfully!', 'success');
-                
+
             } catch (error) {
                 console.error('Error:', error);
                 showStatus(`❌ Error: ${error.message}`, 'error');
@@ -403,81 +409,191 @@
                 setLoading(false);
             }
         }
-        
-        // Handle streaming audio with immediate playback
-        async function handleStreamingAudio(response) {
+
+        // Handle streaming PCM audio chunks
+        async function handleStreamingPCM(response) {
             const reader = response.body.getReader();
-            const chunks = [];
-            let receivedFirstChunk = false;
-            
+            const sampleRate = 22050;
+            const channels = 1;
+
+            // Create Audio Context for progressive playback
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate });
+
+            let nextStartTime = null;
+            let hasStartedPlaying = false;
+            let chunksScheduled = 0;
+            const PREBUFFER_CHUNKS = 1; // Buffer 2 chunks before starting
+
+            const allPCMChunks = [];
+            let buffer = new Uint8Array(0);
+
             try {
                 while (true) {
                     const { done, value } = await reader.read();
-                    
+
                     if (done) break;
-                    
-                    chunks.push(value);
-                    
-                    // Start playing after receiving first chunk
-                    if (!receivedFirstChunk) {
-                        receivedFirstChunk = true;
-                        showStatus('🔊 Audio stream started! Playing as data arrives...', 'loading');
-                        
-                        // Create initial blob from first chunk and start playing
-                        const initialBlob = new Blob(chunks, { type: 'audio/wav' });
-                        displayStreamingAudio(initialBlob, true);
+
+                    // Append to buffer
+                    const newBuffer = new Uint8Array(buffer.length + value.length);
+                    newBuffer.set(buffer);
+                    newBuffer.set(value, buffer.length);
+                    buffer = newBuffer;
+
+                    // Process complete chunks (4 bytes length + data)
+                    while (buffer.length >= 4) {
+                        const dataView = new DataView(buffer.buffer, buffer.byteOffset, buffer.length);
+                        const chunkLength = dataView.getUint32(0, true); // little-endian
+
+                        if (chunkLength === 0) {
+                            // End marker
+                            console.log('[STREAM] Received end marker');
+                            buffer = buffer.slice(4);
+                            break;
+                        }
+
+                        if (chunkLength === 0xFFFFFFFF) {
+                            // Error marker
+                            throw new Error('Server error during streaming');
+                        }
+
+                        if (buffer.length < 4 + chunkLength) {
+                            // Not enough data yet
+                            break;
+                        }
+
+                        // Extract PCM chunk
+                        const pcmData = buffer.slice(4, 4 + chunkLength);
+                        buffer = buffer.slice(4 + chunkLength);
+
+                        // Convert Int16 PCM to Float32
+                        const int16Array = new Int16Array(pcmData.buffer, pcmData.byteOffset, pcmData.length / 2);
+                        const float32Array = new Float32Array(int16Array.length);
+                        for (let i = 0; i < int16Array.length; i++) {
+                            float32Array[i] = int16Array[i] / 32768.0;
+                        }
+
+                        allPCMChunks.push(float32Array);
+
+                        // Create audio buffer
+                        const audioBuffer = audioContext.createBuffer(channels, float32Array.length, sampleRate);
+                        audioBuffer.getChannelData(0).set(float32Array);
+
+                        const source = audioContext.createBufferSource();
+                        source.buffer = audioBuffer;
+                        source.connect(audioContext.destination);
+
+                        // Start playback only after buffering initial chunks
+                        if (!hasStartedPlaying && allPCMChunks.length >= PREBUFFER_CHUNKS) {
+                            nextStartTime = audioContext.currentTime + 0.05;
+                            hasStartedPlaying = true;
+                            showStatus('🔊 Audio playing! Streaming in real-time...', 'loading');
+                            console.log(`[STREAM] Starting playback with ${PREBUFFER_CHUNKS} chunks buffered`);
+                        }
+
+                        // Schedule chunk (only if playback has started)
+                        if (hasStartedPlaying) {
+                            const now = audioContext.currentTime;
+                            const bufferAhead = nextStartTime - now;
+
+                            // Dynamic buffer: keep at least 50% of chunk duration buffered
+                            const minBuffer = audioBuffer.duration * 0.5;
+                            if (bufferAhead < minBuffer) {
+                                nextStartTime = now + minBuffer;
+                                console.warn(`[STREAM] Buffer underrun! Adding ${(minBuffer * 1000).toFixed(0)}ms safety gap`);
+                            }
+
+                            source.start(nextStartTime);
+                            nextStartTime += audioBuffer.duration;
+                            chunksScheduled++;
+                            console.log(`[STREAM] Scheduled chunk ${chunksScheduled}, duration ${audioBuffer.duration.toFixed(3)}s, next ${nextStartTime.toFixed(3)}s`);
+                        } else {
+                            console.log(`[STREAM] Buffering chunk ${allPCMChunks.length}/${PREBUFFER_CHUNKS}...`);
+                        }
                     }
                 }
-                
-                // Create final complete audio blob
-                const completeBlob = new Blob(chunks, { type: 'audio/wav' });
-                displayStreamingAudio(completeBlob, false);
-                
+
+                // Create final WAV file for download
+                if (allPCMChunks.length > 0) {
+                    const totalLength = allPCMChunks.reduce((sum, chunk) => sum + chunk.length, 0);
+                    const finalPCM = new Float32Array(totalLength);
+                    let offset = 0;
+                    for (const chunk of allPCMChunks) {
+                        finalPCM.set(chunk, offset);
+                        offset += chunk.length;
+                    }
+
+                    // Convert to WAV
+                    const wavBlob = createWavBlob(finalPCM, sampleRate);
+                    displayStreamingAudio(wavBlob, false);
+                }
+
             } finally {
                 reader.releaseLock();
             }
         }
-        
+
+        // Create WAV file from PCM data
+        function createWavBlob(pcmData, sampleRate) {
+            const numChannels = 1;
+            const bitsPerSample = 16;
+            const bytesPerSample = bitsPerSample / 8;
+            const blockAlign = numChannels * bytesPerSample;
+
+            const dataLength = pcmData.length * bytesPerSample;
+            const buffer = new ArrayBuffer(44 + dataLength);
+            const view = new DataView(buffer);
+
+            // WAV header
+            const writeString = (offset, string) => {
+                for (let i = 0; i < string.length; i++) {
+                    view.setUint8(offset + i, string.charCodeAt(i));
+                }
+            };
+
+            writeString(0, 'RIFF');
+            view.setUint32(4, 36 + dataLength, true);
+            writeString(8, 'WAVE');
+            writeString(12, 'fmt ');
+            view.setUint32(16, 16, true); // fmt chunk size
+            view.setUint16(20, 1, true); // PCM format
+            view.setUint16(22, numChannels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * blockAlign, true); // byte rate
+            view.setUint16(32, blockAlign, true);
+            view.setUint16(34, bitsPerSample, true);
+            writeString(36, 'data');
+            view.setUint32(40, dataLength, true);
+
+            // PCM data
+            let offset = 44;
+            for (let i = 0; i < pcmData.length; i++) {
+                const sample = Math.max(-1, Math.min(1, pcmData[i]));
+                view.setInt16(offset, sample * 0x7FFF, true);
+                offset += 2;
+            }
+
+            return new Blob([buffer], { type: 'audio/wav' });
+        }
+
         // Display streaming audio with option for immediate playback
         function displayStreamingAudio(audioBlob, isStreaming = false) {
-            // Clean up previous audio URL only if this is the final version
-            if (!isStreaming && currentAudioUrl) {
+            // Clean up previous audio URL
+            if (currentAudioUrl) {
                 URL.revokeObjectURL(currentAudioUrl);
             }
-            
-            const audioUrl = URL.createObjectURL(audioBlob);
-            
-            if (isStreaming) {
-                // For streaming: create a temporary audio element for immediate playback
-                const tempAudio = new Audio(audioUrl);
-                tempAudio.play().catch(e => {
-                    console.log('Auto-play blocked, user interaction required');
-                    showStatus('🔊 Audio ready! Click play button to start.', 'success');
-                });
-                
-                // Clean up temporary URL after playing
-                tempAudio.addEventListener('ended', () => {
-                    URL.revokeObjectURL(audioUrl);
-                });
-            } else {
-                // For final audio: update the main player
-                currentAudioUrl = audioUrl;
-                audioPlayer.src = currentAudioUrl;
-                audioContainer.style.display = 'block';
-                
-                // Auto-play the complete audio
-                audioPlayer.play().catch(e => {
-                    console.log('Auto-play blocked for final audio');
-                });
-                
-                // Set up download for complete audio
-                downloadBtn.onclick = () => {
-                    const a = document.createElement('a');
-                    a.href = currentAudioUrl;
-                    a.download = `tts_audio_${new Date().getTime()}.wav`;
-                    a.click();
-                };
-            }
+
+            // For final audio: update the main player
+            currentAudioUrl = URL.createObjectURL(audioBlob);
+            audioPlayer.src = currentAudioUrl;
+            audioContainer.style.display = 'block';
+
+            // Set up download for complete audio
+            downloadBtn.onclick = () => {
+                const a = document.createElement('a');
+                a.href = currentAudioUrl;
+                a.download = `tts_audio_${new Date().getTime()}.wav`;
+                a.click();
+            };
         }
         
         // Display audio
