@@ -31,5 +31,5 @@ REPETITION_CONTEXT_SIZE = 20
 MAX_TOKENS = 1200
 
 # Model paths
-MODEL_NAME = "nineninesix/kani-tts-370m-MLX"
+MODEL_NAME = "nineninesix/kani-tts-370m"
 CODEC_MODEL_NAME = "nvidia/nemo-nano-codec-22khz-0.6kbps-12.5fps"
