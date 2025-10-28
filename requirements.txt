@@ -1,5 +1,0 @@
-nemo_toolkit[tts]
-transformers @ git+https://github.com/huggingface/transformers.git
-fastapi
-uvicorn
-
